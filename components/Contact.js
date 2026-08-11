@@ -21,7 +21,7 @@ export default function Contact() {
             </div>
             <div className="contact-block">
               <span className="label">Email</span>
-              <div className="value">[clinic@email.com]</div>
+              <div className="value">[eyedentcare@gmail.com]</div>
             </div>
             <div className="contact-block">
               <span className="label">Hours</span>

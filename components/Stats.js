@@ -6,7 +6,7 @@ export default function Stats() {
           <b>25+ years</b> combined clinical experience
         </div>
         <div className="strip-item">
-          <b>[X,000+]</b> patients treated
+          <b>[50,000+]</b> patients treated
         </div>
         <div className="strip-item">
           <b>Mon–Sat</b> · 10:30 AM – 8:30 PM
