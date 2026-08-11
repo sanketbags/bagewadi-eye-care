@@ -4,13 +4,13 @@ const doctors = [
     role: "Founder · Senior Ophthalmologist",
     name: "Dr. Sameer A. Bagewadi",
     cred: "M.S. (Ophthalmology)",
-    bio: "[A few sentences on his background, areas of focus (e.g. cataract, glaucoma), and philosophy of care. This is a great place for a short, warm bio in his own voice.]",
+    bio: "[A few sentences on the background, areas of focus (e.g. cataract, glaucoma), and philosophy of care.]",
   },
   {
     role: "Ophthalmologist",
     name: "Dr. Rasika Bagewadi",
     cred: "M.S. (Ophthalmology)",
-    bio: "[A few sentences on her background, training, and any special interests — e.g. pediatric ophthalmology, LASIK, cornea.]",
+    bio: "[A few sentences on the background, training, and any special interests — e.g. pediatric ophthalmology, LASIK, cornea.]",
   },
 ];
 
