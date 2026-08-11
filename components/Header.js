@@ -14,9 +14,7 @@ export default function Header() {
             Staff Login →
           </a>
         </div>
-        <a href="#contact" className="nav-cta">
-          Book a Visit
-        </a>
+        
         <button className="menu-toggle" aria-label="Menu">
           ☰
         </button>
