@@ -35,7 +35,7 @@ export default function Hero() {
       const angle = (360 / BLADE_COUNT) * i;
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
       path.setAttribute("class", "blade");
-      path.setAttribute("fill", "#173A63");
+      path.setAttribute("fill", "#1A1713");
       path.setAttribute("opacity", "0.9");
       path.setAttribute("d", bladePath(angle, INNER_R_CLOSED));
       path.dataset.angle = angle;
@@ -55,25 +55,26 @@ export default function Hero() {
 
   return (
     <section className="hero">
-      <div>
-        <span className="eyebrow">Ophthalmology · Belagavi, India</span>
-        <h1>
-          Clear sight, <em>cared for</em> by family.
-        </h1>
-        <p className="lead">
-          Two generations of ophthalmologists providing comprehensive eye care
-          for Belagavi and surrounding areas — from routine exams to advanced
-          surgical care.
-        </p>
-       
-      </div>
-      <div className="aperture-wrap">
-        <svg className="aperture" viewBox="0 0 340 340">
-          <circle cx="170" cy="170" r="168" fill="none" stroke="var(--line)" strokeWidth="1" />
-          <g ref={bladeGroupRef}></g>
-          <circle cx="170" cy="170" r="46" fill="var(--amber)" opacity="0.9" />
-          <circle cx="170" cy="170" r="46" fill="none" stroke="var(--ink)" strokeWidth="1.5" />
-        </svg>
+      <div className="hero-inner">
+        <div>
+          <span className="eyebrow">Ophthalmology · Belagavi, India</span>
+          <h1>
+            Clear sight, <em>cared for</em> by family.
+          </h1>
+          <p className="lead">
+            Two generations of ophthalmologists providing comprehensive eye care
+            for Belagavi and surrounding areas — from routine exams to advanced
+            surgical care.
+          </p>
+        </div>
+        <div className="aperture-wrap">
+          <svg className="aperture" viewBox="0 0 340 340" aria-hidden="true">
+            <circle cx="170" cy="170" r="168" fill="none" stroke="var(--line)" strokeWidth="1" />
+            <g ref={bladeGroupRef}></g>
+            <circle cx="170" cy="170" r="46" fill="var(--accent)" opacity="0.9" />
+            <circle cx="170" cy="170" r="46" fill="none" stroke="var(--ink)" strokeWidth="1.5" />
+          </svg>
+        </div>
       </div>
     </section>
   );

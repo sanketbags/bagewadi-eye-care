@@ -1,13 +1,15 @@
+import Reveal from "@/components/Reveal";
+
 export default function Contact() {
   return (
     <section id="contact">
       <div className="wrap">
-        <div className="section-head">
+        <Reveal as="div" className="section-head">
           <span className="eyebrow">Visit Us</span>
           <h2>Come see us, or reach out.</h2>
-        </div>
+        </Reveal>
         <div className="contact-grid">
-          <div>
+          <Reveal as="div">
             <div className="contact-block">
               <span className="label">Address</span>
               <div className="value">
@@ -27,8 +29,10 @@ export default function Contact() {
               <span className="label">Hours</span>
               <div className="value">Mon–Sat, 10:30 AM – 8:30 PM · Sun Closed</div>
             </div>
-          </div>
-          <div className="map-placeholder">Map embed goes here</div>
+          </Reveal>
+          <Reveal as="div" className="map-placeholder">
+            Map embed goes here
+          </Reveal>
         </div>
       </div>
     </section>

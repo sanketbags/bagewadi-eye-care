@@ -1,3 +1,5 @@
+import Reveal from "@/components/Reveal";
+
 // Edit this array to update doctor bios — no need to touch the layout below.
 const doctors = [
   {
@@ -18,18 +20,19 @@ export default function About() {
   return (
     <section id="about">
       <div className="wrap">
-        <div className="section-head">
+        <Reveal as="div" className="section-head">
           <span className="eyebrow">About Us</span>
           <h2>A practice built on two generations of care.</h2>
-        </div>
+        </Reveal>
         <div className="about-grid">
-          {doctors.map((doc) => (
-            <div className="doctor-card" key={doc.name}>
+          {doctors.map((doc, i) => (
+            <Reveal as="div" className="doctor-card" key={doc.name}>
+              <div className="doctor-avatar">{String(i + 1).padStart(2, "0")}</div>
               <span className="role">{doc.role}</span>
               <h3>{doc.name}</h3>
               <div className="cred">{doc.cred}</div>
               <p>{doc.bio}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
       </div>

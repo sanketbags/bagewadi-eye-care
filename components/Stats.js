@@ -1,17 +1,22 @@
+import Reveal from "@/components/Reveal";
+
 export default function Stats() {
   return (
-    <div className="strip">
+    <Reveal as="div" className="strip">
       <div className="wrap">
         <div className="strip-item">
-          <b>25+ years</b> combined clinical experience
+          <b>25+ years</b>
+          <span>combined clinical experience</span>
         </div>
         <div className="strip-item">
-          <b>[50,000+]</b> patients treated
+          <b>[50,000+]</b>
+          <span>patients treated</span>
         </div>
         <div className="strip-item">
-          <b>Mon–Sat</b> · 10:30 AM – 8:30 PM
+          <b>Mon–Sat</b>
+          <span>· 10:30 AM – 8:30 PM</span>
         </div>
       </div>
-    </div>
+    </Reveal>
   );
 }

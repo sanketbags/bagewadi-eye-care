@@ -1,3 +1,5 @@
+import Reveal from "@/components/Reveal";
+
 // Edit this array to update the service list — confirm which of these the
 // clinic actually offers, and remove/add as needed.
 const services = [
@@ -31,19 +33,17 @@ export default function Services() {
   return (
     <section className="services" id="services">
       <div className="wrap">
-        <div className="section-head">
+        <Reveal as="div" className="section-head">
           <span className="eyebrow">What We Offer</span>
           <h2>Comprehensive eye care, under one roof.</h2>
-        </div>
-      </div>
-      <div className="wrap">
-        <div className="services-grid">
+        </Reveal>
+        <div className="services-list">
           {services.map((s, i) => (
-            <div className="service-card" key={s.title}>
+            <Reveal as="div" className="service-row" key={s.title}>
               <span className="num">{String(i + 1).padStart(2, "0")}</span>
               <h3>{s.title}</h3>
               <p>{s.desc}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
       </div>
