@@ -65,12 +65,7 @@ export default function Hero() {
           for Belagavi and surrounding areas — from routine exams to advanced
           surgical care.
         </p>
-        <div className="hero-ctas">
-          
-          <a href="#services" className="btn-secondary">
-            Our services
-          </a>
-        </div>
+       
       </div>
       <div className="aperture-wrap">
         <svg className="aperture" viewBox="0 0 340 340">
