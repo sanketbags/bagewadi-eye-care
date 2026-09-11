@@ -8,7 +8,6 @@ function monthLabelFromValue(value) {
   const names = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   return `${names[Number(m) - 1]} ${y}`;
 }
-
 function monthOptions() {
   const opts = [];
   const now = new Date();
@@ -19,7 +18,6 @@ function monthOptions() {
   }
   return opts;
 }
-
 function currentMonthValue() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
@@ -27,10 +25,13 @@ function currentMonthValue() {
 
 const EMPTY_ROW = { monthly_amount: "", bonus: "", days_worked: "", leave_taken: "" };
 
-export default function ManageClient({ profile, allActive, payByStaffMonth }) {
+export default function ManageClient({ profile, everyone, payByStaffMonth }) {
   const router = useRouter();
   const months = monthOptions();
 
+  const activeStaff = useMemo(() => everyone.filter((p) => p.active !== false), [everyone]);
+
+  // Add staff
   const [sName, setSName] = useState("");
   const [sEmail, setSEmail] = useState("");
   const [sPass, setSPass] = useState("");
@@ -39,37 +40,59 @@ export default function ManageClient({ profile, allActive, payByStaffMonth }) {
   const [addMsg, setAddMsg] = useState("");
   const [addBusy, setAddBusy] = useState(false);
 
+  // Payroll
   const [payMonth, setPayMonth] = useState(currentMonthValue());
   const [includeOwners, setIncludeOwners] = useState(false);
   const [payMsg, setPayMsg] = useState("");
   const [payBusy, setPayBusy] = useState(false);
 
   const payrollPeople = useMemo(
-    () => allActive.filter((p) => p.role === "staff" || (includeOwners && p.role === "owner")),
-    [allActive, includeOwners]
+    () => activeStaff.filter((p) => p.role === "staff" || (includeOwners && p.role === "owner")),
+    [activeStaff, includeOwners]
   );
 
-  // Local edits keyed by staff id, ONLY for the currently selected month.
-  // Reset whenever the month changes so each month shows its own data.
   const [edits, setEdits] = useState({});
-  useEffect(() => {
-    setEdits({});
-    setPayMsg("");
-  }, [payMonth]);
+  useEffect(() => { setEdits({}); setPayMsg(""); }, [payMonth]);
 
-  // The value shown for a row: a local edit if present, else the saved record for
-  // THIS month, else blank.
   function getRow(id) {
     if (edits[id]) return edits[id];
-    const saved = payByStaffMonth[`${id}__${payMonth}`];
-    return saved || EMPTY_ROW;
+    return payByStaffMonth[`${id}__${payMonth}`] || EMPTY_ROW;
   }
   function updateRow(id, field, value) {
     const base = edits[id] || getRow(id);
     setEdits((d) => ({ ...d, [id]: { ...base, [field]: value } }));
   }
-
   const hasMonth = (id) => Boolean(payByStaffMonth[`${id}__${payMonth}`]);
+
+  // Edit staff modal state
+  const [editing, setEditing] = useState(null); // the profile being edited
+  const [eName, setEName] = useState("");
+  const [eTitle, setETitle] = useState("");
+  const [eRole, setERole] = useState("staff");
+  const [rowMsg, setRowMsg] = useState("");
+
+  function openEdit(p) {
+    setEditing(p); setEName(p.full_name || ""); setETitle(p.job_title || ""); setERole(p.role || "staff"); setRowMsg("");
+  }
+  async function saveEdit() {
+    const res = await fetch("/api/staff/update", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: editing.id, full_name: eName, job_title: eTitle, role: eRole }),
+    });
+    const data = await res.json();
+    if (!res.ok) { setRowMsg(data.error || "Could not save."); return; }
+    setEditing(null);
+    router.refresh();
+  }
+  async function toggleActive(p) {
+    const res = await fetch("/api/staff/toggle-active", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: p.id, active: p.active === false ? true : false }),
+    });
+    const data = await res.json();
+    if (!res.ok) { alert(data.error || "Could not update."); return; }
+    router.refresh();
+  }
 
   async function addStaff(e) {
     e.preventDefault();
@@ -81,7 +104,7 @@ export default function ManageClient({ profile, allActive, payByStaffMonth }) {
     const data = await res.json();
     setAddBusy(false);
     if (!res.ok) { setAddMsg(data.error || "Could not add staff member."); return; }
-    setAddMsg(sName + " added. Refresh to include them in payroll.");
+    setAddMsg(sName + " added.");
     setSName(""); setSEmail(""); setSPass(""); setSRole("staff"); setSTitle("");
     router.refresh();
   }
@@ -106,7 +129,6 @@ export default function ManageClient({ profile, allActive, payByStaffMonth }) {
     return (Number(r.monthly_amount) || 0) + (Number(r.bonus) || 0);
   };
   const fmt = (n) => new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(n);
-
   const anyRecorded = payrollPeople.some((p) => hasMonth(p.id));
 
   return (
@@ -147,19 +169,12 @@ export default function ManageClient({ profile, allActive, payByStaffMonth }) {
             )}
 
             {payrollPeople.length === 0 ? (
-              <p className="empty">No staff to show. Add someone below first.</p>
+              <p className="empty">No active staff. Add someone below first.</p>
             ) : (
               <div style={{ overflowX: "auto" }}>
                 <table className="dash-table payroll-table">
                   <thead>
-                    <tr>
-                      <th>Staff</th>
-                      <th>Base (₹)</th>
-                      <th>Bonus (₹)</th>
-                      <th>Days worked</th>
-                      <th>Leave</th>
-                      <th>Total</th>
-                    </tr>
+                    <tr><th>Staff</th><th>Base (₹)</th><th>Bonus (₹)</th><th>Days worked</th><th>Leave</th><th>Total</th></tr>
                   </thead>
                   <tbody>
                     {payrollPeople.map((p) => {
@@ -213,21 +228,55 @@ export default function ManageClient({ profile, allActive, payByStaffMonth }) {
         </section>
 
         <section className="dash-card">
-          <h2>Active staff</h2>
+          <h2>All staff</h2>
           <table className="dash-table">
-            <thead><tr><th>Name</th><th>Role</th><th>Job title</th></tr></thead>
+            <thead><tr><th>Name</th><th>Role</th><th>Job title</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
-              {allActive.map((p) => (
+              {everyone.map((p) => (
                 <tr key={p.id}>
                   <td>{p.full_name}</td>
                   <td>{p.role}</td>
                   <td className="muted">{p.job_title || "—"}</td>
+                  <td>{p.active === false ? <span className="badge badge-rejected">inactive</span> : <span className="badge badge-approved">active</span>}</td>
+                  <td>
+                    <div className="action-btns">
+                      <button onClick={() => openEdit(p)} className="row-btn">Edit</button>
+                      {p.active === false ? (
+                        <button onClick={() => toggleActive(p)} className="row-btn row-btn-green">Reactivate</button>
+                      ) : (
+                        <button onClick={() => toggleActive(p)} className="row-btn row-btn-red" disabled={p.id === profile.id}>Deactivate</button>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </section>
       </main>
+
+      {editing && (
+        <div className="modal-overlay" onClick={() => setEditing(null)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ marginBottom: 18 }}>Edit {editing.full_name}</h2>
+            <div className="timeoff-form">
+              <label>Full name<input value={eName} onChange={(e) => setEName(e.target.value)} /></label>
+              <label>Job title<input value={eTitle} onChange={(e) => setETitle(e.target.value)} placeholder="e.g. Optometrist" /></label>
+              <label>Role
+                <select value={eRole} onChange={(e) => setERole(e.target.value)} className="mgmt-select">
+                  <option value="staff">Staff</option>
+                  <option value="owner">Owner</option>
+                </select>
+              </label>
+              {rowMsg && <span className="login-error">{rowMsg}</span>}
+              <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+                <button onClick={saveEdit} className="dash-btn">Save changes</button>
+                <button onClick={() => setEditing(null)} className="signout-btn">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

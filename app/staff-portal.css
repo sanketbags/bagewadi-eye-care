@@ -125,3 +125,26 @@
 .dl-btn:hover{background:var(--gold);}
 .dl-btn-ghost{background:transparent;color:var(--navy);border:1px solid var(--line);}
 .dl-btn-ghost:hover{background:var(--navy);color:#fff;}
+
+.row-btn{
+  border:1px solid var(--line);background:#fff;color:var(--navy);
+  padding:6px 13px;border-radius:8px;font-size:0.82rem;font-weight:500;cursor:pointer;
+  transition:all .18s;font-family:'Inter';
+}
+.row-btn:hover{border-color:var(--navy);background:var(--navy);color:#fff;}
+.row-btn-green{border-color:#0F6E56;color:#0F6E56;}
+.row-btn-green:hover{background:#0F6E56;color:#fff;border-color:#0F6E56;}
+.row-btn-red{border-color:#A32D2D;color:#A32D2D;}
+.row-btn-red:hover{background:#A32D2D;color:#fff;border-color:#A32D2D;}
+.row-btn:disabled{opacity:0.4;cursor:not-allowed;}
+.row-btn:disabled:hover{background:#fff;color:var(--navy);border-color:var(--line);}
+
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(16,42,72,0.45);
+  display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;
+}
+.modal-card{
+  background:#fff;border-radius:18px;padding:36px;max-width:440px;width:100%;
+  box-shadow:0 24px 60px rgba(0,0,0,0.25);
+}
+.modal-card h2{color:var(--navy);}

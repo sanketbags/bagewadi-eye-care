@@ -10,6 +10,12 @@ export default async function Dashboard() {
   const { data: profile } = await supabase
     .from("profiles").select("*").eq("id", user.id).maybeSingle();
 
+  // Blocked: deactivated accounts get signed out
+  if (profile?.active === false) {
+    await supabase.auth.signOut();
+    redirect("/staff?deactivated=1");
+  }
+
   const isOwner = profile?.role === "owner";
 
   const { data: salaries } = await supabase

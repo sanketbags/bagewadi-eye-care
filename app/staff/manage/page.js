@@ -10,15 +10,15 @@ export default async function ManagePage() {
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
   if (profile?.role !== "owner") redirect("/staff/dashboard");
 
-  const { data: allActive } = await supabase
-    .from("profiles").select("*").eq("active", true).order("full_name");
+  // Everyone (for the roster with reactivate); payroll filters to active in the client
+  const { data: everyone } = await supabase
+    .from("profiles").select("*").order("full_name");
 
   const { data: allPay } = await supabase
     .from("salaries")
     .select("staff_id, monthly_amount, bonus, days_worked, leave_taken, pay_month")
     .order("pay_month", { ascending: false });
 
-  // Full records keyed by "staffId__YYYY-MM-01"
   const payByStaffMonth = {};
   (allPay || []).forEach((r) => {
     if (r.staff_id && r.pay_month) {
@@ -32,5 +32,5 @@ export default async function ManagePage() {
     }
   });
 
-  return <ManageClient profile={profile} allActive={allActive || []} payByStaffMonth={payByStaffMonth} />;
+  return <ManageClient profile={profile} everyone={everyone || []} payByStaffMonth={payByStaffMonth} />;
 }
