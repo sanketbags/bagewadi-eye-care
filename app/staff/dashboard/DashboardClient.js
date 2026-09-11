@@ -96,6 +96,7 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
         <div className="dash-user">
           <span>{profile?.full_name} · {isOwner ? "Owner" : "Staff"}</span>
           <a href="/staff/appointments" className="manage-link">Appointments</a>
+          <a href="/staff/leave" className="manage-link">Leave</a>
           {isOwner && (
             <>
               <a href="/staff/manage" className="manage-link">Manage staff</a>
@@ -129,7 +130,7 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
             <div style={{ overflowX: "auto" }}>
               <table className="dash-table">
                 <thead>
-                  <tr>{isOwner && <th>Staff</th>}<th>Base</th><th>Bonus</th><th>Days</th><th>Leave</th><th>Total</th></tr>
+                  <tr>{isOwner && <th>Staff</th>}<th>Base</th><th>Bonus</th><th>Days</th><th>Leave</th><th>Total</th><th></th></tr>
                 </thead>
                 <tbody>
                   {shownSalaries.map((s) => (
@@ -140,6 +141,7 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
                       <td className="muted">{s.days_worked ?? "—"}</td>
                       <td className="muted">{s.leave_taken ?? "—"}</td>
                       <td style={{ fontWeight: 500 }}>{money(total(s))}</td>
+                      <td><a className="payslip-link" href={`/staff/payslip?staff=${s.staff_id}&month=${String(s.pay_month).slice(0,10)}`}>Payslip</a></td>
                     </tr>
                   ))}
                 </tbody>

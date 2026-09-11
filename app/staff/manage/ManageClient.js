@@ -198,12 +198,18 @@ export default function ManageClient({ profile, everyone, payByStaffMonth }) {
               </div>
             )}
 
-            <div style={{ marginTop: 20, display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ marginTop: 20, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
               <button type="submit" className="dash-btn" disabled={payBusy || payrollPeople.length === 0}>
                 {payBusy ? "Saving…" : `Save ${monthLabelFromValue(payMonth)} pay`}
               </button>
               {payMsg && <span className="form-msg">{payMsg}</span>}
             </div>
+            {payrollPeople.length > 0 && (
+              <div className="wage-total">
+                <span className="wt-label">Total wage bill this month</span>
+                <span className="wt-value">₹{fmt(payrollPeople.reduce((sum, p) => sum + total(p.id), 0))}</span>
+              </div>
+            )}
           </form>
         </section>
 

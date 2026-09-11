@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid, PieChart, Pie, Cell } from "recharts";
 
 const INCOME_CATS = ["Consultation", "Surgery", "Procedure", "Optical / glasses", "Other income"];
 const EXPENSE_CATS = ["Rent", "Supplies", "Equipment", "Utilities", "Maintenance", "Marketing", "Other expense"];
@@ -82,6 +82,31 @@ export default function FinanceClient({ transactions, payrollByMonth }) {
     () => transactions.filter((t) => monthKey(t.txn_date) === filterMonth),
     [transactions, filterMonth]
   );
+
+  // Expense category breakdown for the selected month (transactions only)
+  const categoryData = useMemo(() => {
+    const map = {};
+    monthTxns.filter((t) => t.kind === "expense").forEach((t) => {
+      map[t.category] = (map[t.category] || 0) + (Number(t.amount) || 0);
+    });
+    if (cur.payroll > 0) map["Salaries"] = (map["Salaries"] || 0) + cur.payroll;
+    return Object.entries(map).map(([name, value]) => ({ name, value }));
+  }, [monthTxns, cur.payroll]);
+
+  // Year summary (selected year from filterMonth)
+  const year = filterMonth.slice(0, 4);
+  const yearSummary = useMemo(() => {
+    let income = 0, expense = 0, payroll = 0;
+    transactions.forEach((t) => {
+      if (monthKey(t.txn_date).slice(0, 4) !== year) return;
+      if (t.kind === "income") income += Number(t.amount) || 0;
+      else expense += Number(t.amount) || 0;
+    });
+    Object.entries(payrollByMonth).forEach(([m, tot]) => {
+      if (m.slice(0, 4) === year) payroll += tot;
+    });
+    return { income, expense: expense + payroll, net: income - expense - payroll };
+  }, [transactions, payrollByMonth, year]);
 
   const fmt = (n) => "₹" + new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(n || 0);
   const fmtDate = (d) => new Date(d + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
@@ -176,6 +201,38 @@ export default function FinanceClient({ transactions, payrollByMonth }) {
             </div>
           )}
         </section>
+
+        {/* CATEGORY BREAKDOWN + YEAR SUMMARY */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }} className="fin-two-col">
+          <section className="dash-card">
+            <h2>Where money goes ({monthLabel(filterMonth)})</h2>
+            {categoryData.length === 0 ? (
+              <p className="empty">No expenses this month.</p>
+            ) : (
+              <div style={{ width: "100%", height: 260 }}>
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Pie data={categoryData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={(e) => e.name}>
+                      {categoryData.map((_, i) => (
+                        <Cell key={i} fill={["#173A63","#C99A2E","#0F6E56","#6E86A6","#A32D2D","#1F4677","#E5C878"][i % 7]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(v) => fmt(v)} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </section>
+
+          <section className="dash-card">
+            <h2>{year} year to date</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 10 }}>
+              <div className="year-row"><span>Total income</span><b style={{ color: "#0F6E56" }}>{fmt(yearSummary.income)}</b></div>
+              <div className="year-row"><span>Total expenses</span><b style={{ color: "#C99A2E" }}>{fmt(yearSummary.expense)}</b></div>
+              <div className="year-row year-net"><span>Net {yearSummary.net >= 0 ? "profit" : "loss"}</span><b style={{ color: yearSummary.net >= 0 ? "#173A63" : "#A32D2D" }}>{fmt(Math.abs(yearSummary.net))}</b></div>
+            </div>
+          </section>
+        </div>
 
         {/* RECORD FORM */}
         <section className="dash-card">

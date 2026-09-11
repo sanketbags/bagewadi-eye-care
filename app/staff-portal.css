@@ -196,3 +196,47 @@
 .fin-net-neg .fin-value{color:#A32D2D;}
 .fin-sub{font-size:0.78rem;color:var(--muted);margin-top:4px;}
 @media (max-width:760px){ .fin-cards{grid-template-columns:1fr;} }
+
+/* PAYSLIP */
+.payslip-wrap{max-width:720px;margin:0 auto;padding:32px 24px;}
+.payslip-actions{display:flex;justify-content:space-between;margin-bottom:24px;gap:12px;}
+.payslip{background:#fff;border:1px solid var(--line);border-radius:14px;padding:44px;}
+.payslip-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid var(--navy);padding-bottom:20px;margin-bottom:24px;}
+.payslip-clinic{font-family:'Fraunces',serif;font-size:1.3rem;color:var(--navy);font-weight:600;}
+.payslip-sub{font-size:0.8rem;color:var(--muted);margin-top:4px;max-width:320px;}
+.payslip-title{font-family:'Fraunces',serif;font-size:1.4rem;color:var(--gold);}
+.payslip-meta{display:flex;flex-wrap:wrap;gap:24px;margin-bottom:28px;}
+.payslip-meta div{display:flex;flex-direction:column;}
+.payslip-meta span{font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;}
+.payslip-meta b{color:var(--navy);font-size:1rem;margin-top:2px;}
+.payslip-table{width:100%;border-collapse:collapse;margin-bottom:24px;}
+.payslip-table td{padding:12px 4px;border-bottom:1px solid var(--line);font-size:0.98rem;}
+.payslip-table .r{text-align:right;font-weight:500;color:var(--navy);}
+.payslip-table tfoot td{border-top:2px solid var(--navy);border-bottom:none;font-weight:700;font-size:1.1rem;padding-top:14px;color:var(--navy);}
+.payslip-foot{font-size:0.78rem;color:var(--muted);text-align:center;margin-top:20px;font-style:italic;}
+.payslip-link{color:var(--navy);font-size:0.82rem;text-decoration:underline;}
+
+@media print {
+  .no-print{display:none !important;}
+  .payslip-wrap{padding:0;max-width:100%;}
+  .payslip{border:none;padding:20px;}
+  header, .dash-head{display:none !important;}
+}
+
+/* WAGE BILL TOTAL */
+.wage-total{background:var(--navy);color:#fff;border-radius:12px;padding:16px 22px;display:inline-flex;align-items:center;gap:12px;margin-top:16px;}
+.wage-total .wt-label{font-size:0.85rem;opacity:0.85;}
+.wage-total .wt-value{font-family:'Fraunces',serif;font-size:1.4rem;color:var(--gold-soft);}
+
+/* LEAVE BALANCE */
+.leave-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;}
+.leave-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;}
+.leave-card .ln{font-weight:500;color:var(--navy);margin-bottom:10px;}
+.leave-card .lb{display:flex;justify-content:space-between;font-size:0.9rem;padding:4px 0;color:var(--muted);}
+.leave-card .lb b{color:var(--navy);}
+
+/* FINANCE ENHANCEMENTS */
+.year-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);font-size:0.98rem;color:var(--muted);}
+.year-row b{font-size:1.3rem;font-family:'Fraunces',serif;font-weight:500;}
+.year-net{border-bottom:none;border-top:2px solid var(--navy);margin-top:6px;padding-top:16px;}
+@media (max-width:760px){ .fin-two-col{grid-template-columns:1fr !important;} }
