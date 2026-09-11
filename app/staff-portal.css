@@ -148,3 +148,15 @@
   box-shadow:0 24px 60px rgba(0,0,0,0.25);
 }
 .modal-card h2{color:var(--navy);}
+
+.forgot-link{
+  display:block;margin:16px auto 0;background:none;border:none;
+  color:var(--navy);font-size:0.88rem;cursor:pointer;text-decoration:underline;
+  font-family:'Inter';
+}
+.forgot-link:hover{color:var(--gold);}
+.account-link{
+  background:transparent;color:var(--navy);border:1px solid var(--line);
+  padding:8px 16px;border-radius:9px;font-size:0.88rem;font-weight:500;transition:all .2s;
+}
+.account-link:hover{border-color:var(--navy);background:var(--navy);color:#fff;}

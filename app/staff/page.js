@@ -9,13 +9,15 @@ function LoginInner() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetMsg, setResetMsg] = useState("");
+  const [showReset, setShowReset] = useState(false);
   const router = useRouter();
   const params = useSearchParams();
   const deactivated = params.get("deactivated") === "1";
 
   async function handleLogin(e) {
     e.preventDefault();
-    setError("");
+    setError(""); setResetMsg("");
     setLoading(true);
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -26,6 +28,16 @@ function LoginInner() {
     }
     router.push("/staff/dashboard");
     router.refresh();
+  }
+
+  async function sendReset() {
+    setError(""); setResetMsg("");
+    if (!email) { setError("Enter your email above first, then click reset."); return; }
+    const supabase = createClient();
+    const redirectTo = `${window.location.origin}/staff/reset`;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) { setError(error.message); return; }
+    setResetMsg("If that email has an account, a reset link is on its way. Check your inbox (and spam).");
   }
 
   return (
@@ -52,10 +64,13 @@ function LoginInner() {
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Your password" required />
           </label>
           {error && <div className="login-error">{error}</div>}
+          {resetMsg && <div className="form-msg">{resetMsg}</div>}
           <button type="submit" className="login-btn" disabled={loading}>
             {loading ? "Signing in…" : "Sign in"}
           </button>
         </form>
+
+        <button type="button" onClick={sendReset} className="forgot-link">Forgot password?</button>
 
         <a href="/" className="login-back">← Back to website</a>
       </div>

@@ -112,6 +112,7 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
         <div className="dash-user">
           <span>{profile?.full_name} · {isOwner ? "Owner" : "Staff"}</span>
           {isOwner && <a href="/staff/manage" className="manage-link">Manage staff</a>}
+          <a href="/staff/account" className="account-link">Account</a>
           <button onClick={signOut} className="signout-btn">Sign out</button>
         </div>
       </header>
