@@ -1,0 +1,7 @@
+
+.payroll-table .pay-input{
+  width:90px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;
+  font-size:0.9rem;font-family:'Inter';
+}
+.payroll-table .pay-input:focus{outline:none;border-color:var(--navy);}
+.payroll-table td{padding:8px 10px;}
