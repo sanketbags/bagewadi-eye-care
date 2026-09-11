@@ -14,20 +14,23 @@ export default async function ManagePage() {
     .from("profiles").select("*").eq("active", true).order("full_name");
 
   const { data: allPay } = await supabase
-    .from("salaries").select("staff_id, monthly_amount, pay_month")
+    .from("salaries")
+    .select("staff_id, monthly_amount, bonus, days_worked, leave_taken, pay_month")
     .order("pay_month", { ascending: false });
 
-  // last base per staff (for prefill)
-  const lastBase = {};
-  // set of recorded months per staff (YYYY-MM-01 strings)
-  const recordedMonths = {};
+  // Full records keyed by "staffId__YYYY-MM-01"
+  const payByStaffMonth = {};
   (allPay || []).forEach((r) => {
-    if (!r.staff_id) return;
-    if (lastBase[r.staff_id] == null) lastBase[r.staff_id] = r.monthly_amount;
-    if (r.pay_month) {
-      (recordedMonths[r.staff_id] = recordedMonths[r.staff_id] || []).push(r.pay_month);
+    if (r.staff_id && r.pay_month) {
+      const key = `${r.staff_id}__${String(r.pay_month).slice(0, 10)}`;
+      payByStaffMonth[key] = {
+        monthly_amount: r.monthly_amount ?? "",
+        bonus: r.bonus ?? "",
+        days_worked: r.days_worked ?? "",
+        leave_taken: r.leave_taken ?? "",
+      };
     }
   });
 
-  return <ManageClient profile={profile} allActive={allActive || []} lastBase={lastBase} recordedMonths={recordedMonths} />;
+  return <ManageClient profile={profile} allActive={allActive || []} payByStaffMonth={payByStaffMonth} />;
 }

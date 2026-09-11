@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-// Timezone-safe: format a YYYY-MM-01 string without Date parsing drift
 function monthLabelFromValue(value) {
   const [y, m] = value.split("-");
   const names = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -13,28 +12,24 @@ function monthLabelFromValue(value) {
 function monthOptions() {
   const opts = [];
   const now = new Date();
-  for (let i = 0; i < 15; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+  for (let i = 12; i >= -12; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
     const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
     opts.push({ value, label: monthLabelFromValue(value) });
   }
   return opts;
 }
 
-export default function ManageClient({ profile, allActive, lastBase, recordedMonths }) {
+function currentMonthValue() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+}
+
+const EMPTY_ROW = { monthly_amount: "", bonus: "", days_worked: "", leave_taken: "" };
+
+export default function ManageClient({ profile, allActive, payByStaffMonth }) {
   const router = useRouter();
   const months = monthOptions();
-
-  const staffPeople = useMemo(() => allActive.filter((p) => p.role === "staff"), [allActive]);
-
-  // Smart default: most recent month not yet recorded for ALL staff
-  const defaultMonth = useMemo(() => {
-    for (const m of months) {
-      const everyoneHasIt = staffPeople.every((p) => (recordedMonths[p.id] || []).includes(m.value));
-      if (!everyoneHasIt) return m.value;
-    }
-    return months[0].value;
-  }, [months, staffPeople, recordedMonths]);
 
   const [sName, setSName] = useState("");
   const [sEmail, setSEmail] = useState("");
@@ -44,7 +39,7 @@ export default function ManageClient({ profile, allActive, lastBase, recordedMon
   const [addMsg, setAddMsg] = useState("");
   const [addBusy, setAddBusy] = useState(false);
 
-  const [payMonth, setPayMonth] = useState(defaultMonth);
+  const [payMonth, setPayMonth] = useState(currentMonthValue());
   const [includeOwners, setIncludeOwners] = useState(false);
   const [payMsg, setPayMsg] = useState("");
   const [payBusy, setPayBusy] = useState(false);
@@ -54,16 +49,27 @@ export default function ManageClient({ profile, allActive, lastBase, recordedMon
     [allActive, includeOwners]
   );
 
-  const [rowData, setRowData] = useState({});
+  // Local edits keyed by staff id, ONLY for the currently selected month.
+  // Reset whenever the month changes so each month shows its own data.
+  const [edits, setEdits] = useState({});
+  useEffect(() => {
+    setEdits({});
+    setPayMsg("");
+  }, [payMonth]);
+
+  // The value shown for a row: a local edit if present, else the saved record for
+  // THIS month, else blank.
   function getRow(id) {
-    return rowData[id] || { monthly_amount: lastBase[id] ?? "", bonus: "", days_worked: "", leave_taken: "" };
+    if (edits[id]) return edits[id];
+    const saved = payByStaffMonth[`${id}__${payMonth}`];
+    return saved || EMPTY_ROW;
   }
   function updateRow(id, field, value) {
-    setRowData((d) => ({ ...d, [id]: { ...getRow(id), [field]: value } }));
+    const base = edits[id] || getRow(id);
+    setEdits((d) => ({ ...d, [id]: { ...base, [field]: value } }));
   }
 
-  // Does this person already have a record for the selected month?
-  const hasMonth = (id) => (recordedMonths[id] || []).includes(payMonth);
+  const hasMonth = (id) => Boolean(payByStaffMonth[`${id}__${payMonth}`]);
 
   async function addStaff(e) {
     e.preventDefault();
@@ -164,10 +170,10 @@ export default function ManageClient({ profile, allActive, lastBase, recordedMon
                             {p.full_name}{p.role === "owner" && <span className="muted"> (owner)</span>}
                             {hasMonth(p.id) && <span className="badge badge-approved" style={{ marginLeft: 8, fontSize: "0.7rem" }}>already recorded</span>}
                           </td>
-                          <td><input type="number" className="pay-input" value={r.monthly_amount} onChange={(e) => updateRow(p.id, "monthly_amount", e.target.value)} placeholder="0" /></td>
-                          <td><input type="number" className="pay-input" value={r.bonus} onChange={(e) => updateRow(p.id, "bonus", e.target.value)} placeholder="0" /></td>
-                          <td><input type="number" className="pay-input" value={r.days_worked} onChange={(e) => updateRow(p.id, "days_worked", e.target.value)} placeholder="0" /></td>
-                          <td><input type="number" className="pay-input" value={r.leave_taken} onChange={(e) => updateRow(p.id, "leave_taken", e.target.value)} placeholder="0" /></td>
+                          <td><input type="number" className="pay-input" value={r.monthly_amount} onChange={(e) => updateRow(p.id, "monthly_amount", e.target.value)} placeholder="—" /></td>
+                          <td><input type="number" className="pay-input" value={r.bonus} onChange={(e) => updateRow(p.id, "bonus", e.target.value)} placeholder="—" /></td>
+                          <td><input type="number" className="pay-input" value={r.days_worked} onChange={(e) => updateRow(p.id, "days_worked", e.target.value)} placeholder="—" /></td>
+                          <td><input type="number" className="pay-input" value={r.leave_taken} onChange={(e) => updateRow(p.id, "leave_taken", e.target.value)} placeholder="—" /></td>
                           <td style={{ fontWeight: 500 }}>₹{fmt(total(p.id))}</td>
                         </tr>
                       );
