@@ -170,31 +170,33 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
           {timeOff.length === 0 ? (
             <p className="empty">No requests yet.</p>
           ) : (
-            <table className="dash-table">
-              <thead>
-                <tr>{isOwner && <th>Staff</th>}<th>Dates</th><th>Reason</th><th>Status</th>{isOwner && <th>Action</th>}</tr>
-              </thead>
-              <tbody>
-                {timeOff.map((t) => (
-                  <tr key={t.id}>
-                    {isOwner && <td>{t.profiles?.full_name || "—"}</td>}
-                    <td>{fmtDate(t.start_date)} – {fmtDate(t.end_date)}</td>
-                    <td className="muted">{t.reason || "—"}</td>
-                    <td><span className={`badge badge-${t.status}`}>{t.status}</span></td>
-                    {isOwner && (
-                      <td>
-                        {t.status === "pending" ? (
-                          <div className="action-btns">
-                            <button onClick={() => review(t.id, "approved")} className="approve">Approve</button>
-                            <button onClick={() => review(t.id, "rejected")} className="reject">Reject</button>
-                          </div>
-                        ) : (<span className="muted">—</span>)}
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div style={{ overflowX: "auto" }}>
+              <table className="dash-table">
+                <thead>
+                  <tr>{isOwner && <th>Staff</th>}<th>Dates</th><th>Reason</th><th>Status</th>{isOwner && <th>Action</th>}</tr>
+                </thead>
+                <tbody>
+                  {timeOff.map((t) => (
+                    <tr key={t.id}>
+                      {isOwner && <td>{t.profiles?.full_name || "—"}</td>}
+                      <td>{fmtDate(t.start_date)} – {fmtDate(t.end_date)}</td>
+                      <td className="muted">{t.reason || "—"}</td>
+                      <td><span className={`badge badge-${t.status}`}>{t.status}</span></td>
+                      {isOwner && (
+                        <td>
+                          {t.status === "pending" ? (
+                            <div className="action-btns">
+                              <button onClick={() => review(t.id, "approved")} className="approve">Approve</button>
+                              <button onClick={() => review(t.id, "rejected")} className="reject">Reject</button>
+                            </div>
+                          ) : (<span className="muted">—</span>)}
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </section>
 
@@ -202,19 +204,21 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
           <section className="dash-card">
             <h2>Staff directory</h2>
             <p className="muted" style={{ marginBottom: 16 }}>{staffList.length} people. Use “Manage staff” to record pay and add people.</p>
-            <table className="dash-table">
-              <thead><tr><th>Name</th><th>Role</th><th>Job title</th><th>Status</th></tr></thead>
-              <tbody>
-                {staffList.map((p) => (
-                  <tr key={p.id}>
-                    <td>{p.full_name}</td>
-                    <td>{p.role}</td>
-                    <td className="muted">{p.job_title || "—"}</td>
-                    <td>{p.active === false ? <span className="badge badge-rejected">inactive</span> : <span className="badge badge-approved">active</span>}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div style={{ overflowX: "auto" }}>
+              <table className="dash-table">
+                <thead><tr><th>Name</th><th>Role</th><th>Job title</th><th>Status</th></tr></thead>
+                <tbody>
+                  {staffList.map((p) => (
+                    <tr key={p.id}>
+                      <td>{p.full_name}</td>
+                      <td>{p.role}</td>
+                      <td className="muted">{p.job_title || "—"}</td>
+                      <td>{p.active === false ? <span className="badge badge-rejected">inactive</span> : <span className="badge badge-approved">active</span>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
       </main>

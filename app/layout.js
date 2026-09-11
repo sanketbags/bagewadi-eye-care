@@ -7,6 +7,11 @@ export const metadata = {
     "Comprehensive ophthalmology care in Belagavi, Karnataka — cataract, glaucoma, LASIK, pediatric eye care, and more.",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">

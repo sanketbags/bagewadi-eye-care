@@ -276,29 +276,31 @@ export default function FinanceClient({ transactions, payrollByMonth }) {
           {monthTxns.length === 0 && cur.payroll === 0 ? (
             <p className="empty">No transactions for {monthLabel(filterMonth)}.</p>
           ) : (
-            <table className="dash-table">
-              <thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Note</th><th>Amount</th></tr></thead>
-              <tbody>
-                {monthTxns.map((t) => (
-                  <tr key={t.id}>
-                    <td>{fmtDate(t.txn_date)}</td>
-                    <td><span className={`badge badge-${t.kind === "income" ? "approved" : "rejected"}`}>{t.kind}</span></td>
-                    <td>{t.category}</td>
-                    <td className="muted">{t.note || "—"}</td>
-                    <td style={{ fontWeight: 500 }}>{fmt(t.amount)}</td>
-                  </tr>
-                ))}
-                {cur.payroll > 0 && (
-                  <tr>
-                    <td className="muted">—</td>
-                    <td><span className="badge badge-rejected">expense</span></td>
-                    <td>Salaries (payroll)</td>
-                    <td className="muted">Auto from payroll</td>
-                    <td style={{ fontWeight: 500 }}>{fmt(cur.payroll)}</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+            <div style={{ overflowX: "auto" }}>
+              <table className="dash-table">
+                <thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Note</th><th>Amount</th></tr></thead>
+                <tbody>
+                  {monthTxns.map((t) => (
+                    <tr key={t.id}>
+                      <td>{fmtDate(t.txn_date)}</td>
+                      <td><span className={`badge badge-${t.kind === "income" ? "approved" : "rejected"}`}>{t.kind}</span></td>
+                      <td>{t.category}</td>
+                      <td className="muted">{t.note || "—"}</td>
+                      <td style={{ fontWeight: 500 }}>{fmt(t.amount)}</td>
+                    </tr>
+                  ))}
+                  {cur.payroll > 0 && (
+                    <tr>
+                      <td className="muted">—</td>
+                      <td><span className="badge badge-rejected">expense</span></td>
+                      <td>Salaries (payroll)</td>
+                      <td className="muted">Auto from payroll</td>
+                      <td style={{ fontWeight: 500 }}>{fmt(cur.payroll)}</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           )}
         </section>
       </main>

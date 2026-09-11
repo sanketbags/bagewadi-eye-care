@@ -235,29 +235,31 @@ export default function ManageClient({ profile, everyone, payByStaffMonth }) {
 
         <section className="dash-card">
           <h2>All staff</h2>
-          <table className="dash-table">
-            <thead><tr><th>Name</th><th>Role</th><th>Job title</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody>
-              {everyone.map((p) => (
-                <tr key={p.id}>
-                  <td>{p.full_name}</td>
-                  <td>{p.role}</td>
-                  <td className="muted">{p.job_title || "—"}</td>
-                  <td>{p.active === false ? <span className="badge badge-rejected">inactive</span> : <span className="badge badge-approved">active</span>}</td>
-                  <td>
-                    <div className="action-btns">
-                      <button onClick={() => openEdit(p)} className="row-btn">Edit</button>
-                      {p.active === false ? (
-                        <button onClick={() => toggleActive(p)} className="row-btn row-btn-green">Reactivate</button>
-                      ) : (
-                        <button onClick={() => toggleActive(p)} className="row-btn row-btn-red" disabled={p.id === profile.id}>Deactivate</button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div style={{ overflowX: "auto" }}>
+            <table className="dash-table">
+              <thead><tr><th>Name</th><th>Role</th><th>Job title</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>
+                {everyone.map((p) => (
+                  <tr key={p.id}>
+                    <td>{p.full_name}</td>
+                    <td>{p.role}</td>
+                    <td className="muted">{p.job_title || "—"}</td>
+                    <td>{p.active === false ? <span className="badge badge-rejected">inactive</span> : <span className="badge badge-approved">active</span>}</td>
+                    <td>
+                      <div className="action-btns">
+                        <button onClick={() => openEdit(p)} className="row-btn">Edit</button>
+                        {p.active === false ? (
+                          <button onClick={() => toggleActive(p)} className="row-btn row-btn-green">Reactivate</button>
+                        ) : (
+                          <button onClick={() => toggleActive(p)} className="row-btn row-btn-red" disabled={p.id === profile.id}>Deactivate</button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       </main>
 
