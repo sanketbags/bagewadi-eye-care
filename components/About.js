@@ -1,38 +1,38 @@
-import Reveal from "@/components/Reveal";
-
-// Edit this array to update doctor bios — no need to touch the layout below.
+// Edit this array to update doctor bios.
 const doctors = [
   {
-    role: "Founder · Senior Ophthalmologist",
+    initials: "SB",
+    role: "Founder & Senior Ophthalmologist",
     name: "Dr. Sameer A. Bagewadi",
     cred: "M.S. (Ophthalmology)",
-    bio: "[A few sentences on the background, areas of focus (e.g. cataract, glaucoma), and philosophy of care.]",
+    bio: "[A warm few sentences on his background, areas of focus, and philosophy of care — ideally in his own voice.]",
   },
   {
+    initials: "RB",
     role: "Ophthalmologist",
     name: "Dr. Rasika Bagewadi",
     cred: "M.S. (Ophthalmology)",
-    bio: "[A few sentences on the background, training, and any special interests — e.g. pediatric ophthalmology, LASIK, cornea.]",
+    bio: "[A warm few sentences on her background, training, and special interests — e.g. pediatric care, cornea, LASIK.]",
   },
 ];
 
 export default function About() {
   return (
-    <section id="about">
+    <section className="about" id="about">
       <div className="wrap">
-        <Reveal as="div" className="section-head">
-          <span className="eyebrow">About Us</span>
-          <h2>A practice built on two generations of care.</h2>
-        </Reveal>
+        <div className="head">
+          <div className="kicker">The people behind the practice</div>
+          <h2>Two generations, one commitment to your sight.</h2>
+        </div>
         <div className="about-grid">
-          {doctors.map((doc, i) => (
-            <Reveal as="div" className="doctor-card" key={doc.name}>
-              <div className="doctor-avatar">{String(i + 1).padStart(2, "0")}</div>
-              <span className="role">{doc.role}</span>
+          {doctors.map((doc) => (
+            <div className="doc-card" key={doc.name}>
+              <div className="doc-avatar">{doc.initials}</div>
+              <div className="role">{doc.role}</div>
               <h3>{doc.name}</h3>
               <div className="cred">{doc.cred}</div>
               <p>{doc.bio}</p>
-            </Reveal>
+            </div>
           ))}
         </div>
       </div>
