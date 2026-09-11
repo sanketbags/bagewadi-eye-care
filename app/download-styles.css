@@ -1,0 +1,8 @@
+
+.dl-btn{
+  background:var(--navy);color:#fff;border:none;padding:9px 16px;border-radius:9px;
+  font-size:0.85rem;font-weight:500;cursor:pointer;transition:background .2s;font-family:'Inter';
+}
+.dl-btn:hover{background:var(--gold);}
+.dl-btn-ghost{background:transparent;color:var(--navy);border:1px solid var(--line);}
+.dl-btn-ghost:hover{background:var(--navy);color:#fff;}

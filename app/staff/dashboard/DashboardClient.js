@@ -1,8 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-client";
+import * as XLSX from "xlsx";
+
+function monthLabelFromValue(value) {
+  if (!value) return "—";
+  const [y, m] = String(value).slice(0, 10).split("-");
+  const names = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  return `${names[Number(m) - 1]} ${y}`;
+}
+function currentMonthValue() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+}
 
 export default function DashboardClient({ profile, isOwner, salaries, timeOff, staffList }) {
   const router = useRouter();
@@ -12,6 +24,56 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
   const [msg, setMsg] = useState("");
+
+  const payMonths = useMemo(() => {
+    const set = new Set();
+    salaries.forEach((s) => { if (s.pay_month) set.add(String(s.pay_month).slice(0, 10)); });
+    return Array.from(set).sort().reverse();
+  }, [salaries]);
+
+  const cur = currentMonthValue();
+  const [filterMonth, setFilterMonth] = useState(
+    payMonths.includes(cur) ? cur : (payMonths[0] || cur)
+  );
+
+  const shownSalaries = useMemo(
+    () => salaries.filter((s) => String(s.pay_month).slice(0, 10) === filterMonth),
+    [salaries, filterMonth]
+  );
+
+  const money = (a) => (a == null ? "—" : "₹" + new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(a));
+  const total = (s) => (Number(s.monthly_amount) || 0) + (Number(s.bonus) || 0);
+  const fmtDate = (d) => new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+
+  // Build a plain-object row for Excel (numbers, not formatted strings)
+  function toExcelRows(rows) {
+    return rows.map((s) => {
+      const r = {};
+      r["Month"] = monthLabelFromValue(s.pay_month);
+      if (isOwner) r["Staff"] = s.profiles?.full_name || "";
+      r["Base"] = Number(s.monthly_amount) || 0;
+      r["Bonus"] = Number(s.bonus) || 0;
+      r["Days worked"] = s.days_worked ?? "";
+      r["Leave"] = s.leave_taken ?? "";
+      r["Total"] = total(s);
+      return r;
+    });
+  }
+
+  function downloadExcel(rows, filename) {
+    if (rows.length === 0) return;
+    const ws = XLSX.utils.json_to_sheet(toExcelRows(rows));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Pay records");
+    XLSX.writeFile(wb, filename);
+  }
+
+  function downloadMonth() {
+    downloadExcel(shownSalaries, `pay-${filterMonth}.xlsx`);
+  }
+  function downloadAll() {
+    downloadExcel(salaries, `pay-all-records.xlsx`);
+  }
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -40,16 +102,6 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
     router.refresh();
   }
 
-  const money = (a) => (a == null ? "—" : "₹" + new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(a));
-  const total = (s) => (Number(s.monthly_amount) || 0) + (Number(s.bonus) || 0);
-  const monthLabel = (d) => {
-    if (!d) return "—";
-    const [y, m] = String(d).slice(0, 10).split("-");
-    const names = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-    return `${names[Number(m) - 1]} ${y}`;
-  };
-  const fmtDate = (d) => new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-
   return (
     <div className="dash">
       <header className="dash-head">
@@ -68,15 +120,29 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
         <h1>Welcome, {profile?.full_name?.split(" ")[0]}.</h1>
 
         <section className="dash-card">
-          <h2>{isOwner ? "Monthly pay records" : "Your monthly pay"}</h2>
-          {salaries.length === 0 ? (
-            <p className="empty">No pay records yet.</p>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
+            <h2 style={{ margin: 0 }}>{isOwner ? "Monthly pay records" : "Your monthly pay"}</h2>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              {payMonths.length > 0 && (
+                <select value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} className="mgmt-select" style={{ width: 190 }}>
+                  {payMonths.map((m) => (<option key={m} value={m}>{monthLabelFromValue(m)}</option>))}
+                </select>
+              )}
+              {shownSalaries.length > 0 && (
+                <button type="button" onClick={downloadMonth} className="dl-btn">Download this month</button>
+              )}
+              {salaries.length > 0 && (
+                <button type="button" onClick={downloadAll} className="dl-btn dl-btn-ghost">Download all</button>
+              )}
+            </div>
+          </div>
+          {shownSalaries.length === 0 ? (
+            <p className="empty">No pay records for {monthLabelFromValue(filterMonth)}.</p>
           ) : (
             <div style={{ overflowX: "auto" }}>
               <table className="dash-table">
                 <thead>
                   <tr>
-                    <th>Month</th>
                     {isOwner && <th>Staff</th>}
                     <th>Base</th>
                     <th>Bonus</th>
@@ -86,9 +152,8 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
                   </tr>
                 </thead>
                 <tbody>
-                  {salaries.map((s) => (
+                  {shownSalaries.map((s) => (
                     <tr key={s.id}>
-                      <td>{monthLabel(s.pay_month)}</td>
                       {isOwner && <td>{s.profiles?.full_name || "—"}</td>}
                       <td>{money(s.monthly_amount)}</td>
                       <td>{money(s.bonus)}</td>
