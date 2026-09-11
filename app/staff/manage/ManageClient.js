@@ -3,21 +3,38 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
+// Timezone-safe: format a YYYY-MM-01 string without Date parsing drift
+function monthLabelFromValue(value) {
+  const [y, m] = value.split("-");
+  const names = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  return `${names[Number(m) - 1]} ${y}`;
+}
+
 function monthOptions() {
   const opts = [];
   const now = new Date();
   for (let i = 0; i < 15; i++) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
-    const label = d.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
-    opts.push({ value, label });
+    opts.push({ value, label: monthLabelFromValue(value) });
   }
   return opts;
 }
 
-export default function ManageClient({ profile, allActive, lastBase }) {
+export default function ManageClient({ profile, allActive, lastBase, recordedMonths }) {
   const router = useRouter();
   const months = monthOptions();
+
+  const staffPeople = useMemo(() => allActive.filter((p) => p.role === "staff"), [allActive]);
+
+  // Smart default: most recent month not yet recorded for ALL staff
+  const defaultMonth = useMemo(() => {
+    for (const m of months) {
+      const everyoneHasIt = staffPeople.every((p) => (recordedMonths[p.id] || []).includes(m.value));
+      if (!everyoneHasIt) return m.value;
+    }
+    return months[0].value;
+  }, [months, staffPeople, recordedMonths]);
 
   const [sName, setSName] = useState("");
   const [sEmail, setSEmail] = useState("");
@@ -27,12 +44,11 @@ export default function ManageClient({ profile, allActive, lastBase }) {
   const [addMsg, setAddMsg] = useState("");
   const [addBusy, setAddBusy] = useState(false);
 
-  const [payMonth, setPayMonth] = useState(months[0].value);
+  const [payMonth, setPayMonth] = useState(defaultMonth);
   const [includeOwners, setIncludeOwners] = useState(false);
   const [payMsg, setPayMsg] = useState("");
   const [payBusy, setPayBusy] = useState(false);
 
-  // Who appears in payroll: staff always, owners only if toggled on
   const payrollPeople = useMemo(
     () => allActive.filter((p) => p.role === "staff" || (includeOwners && p.role === "owner")),
     [allActive, includeOwners]
@@ -45,6 +61,9 @@ export default function ManageClient({ profile, allActive, lastBase }) {
   function updateRow(id, field, value) {
     setRowData((d) => ({ ...d, [id]: { ...getRow(id), [field]: value } }));
   }
+
+  // Does this person already have a record for the selected month?
+  const hasMonth = (id) => (recordedMonths[id] || []).includes(payMonth);
 
   async function addStaff(e) {
     e.preventDefault();
@@ -72,7 +91,7 @@ export default function ManageClient({ profile, allActive, lastBase }) {
     const data = await res.json();
     setPayBusy(false);
     if (!res.ok) { setPayMsg(data.error || "Could not save payroll."); return; }
-    setPayMsg(`Saved pay for ${data.saved} ${data.saved === 1 ? "person" : "people"}.`);
+    setPayMsg(`Saved pay for ${data.saved} ${data.saved === 1 ? "person" : "people"} for ${monthLabelFromValue(payMonth)}.`);
     router.refresh();
   }
 
@@ -81,6 +100,8 @@ export default function ManageClient({ profile, allActive, lastBase }) {
     return (Number(r.monthly_amount) || 0) + (Number(r.bonus) || 0);
   };
   const fmt = (n) => new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(n);
+
+  const anyRecorded = payrollPeople.some((p) => hasMonth(p.id));
 
   return (
     <div className="dash">
@@ -113,6 +134,12 @@ export default function ManageClient({ profile, allActive, lastBase }) {
               </label>
             </div>
 
+            {anyRecorded && (
+              <p className="muted" style={{ marginBottom: 14, fontSize: "0.9rem" }}>
+                Rows marked “already recorded” have pay saved for {monthLabelFromValue(payMonth)}. Saving again overwrites them.
+              </p>
+            )}
+
             {payrollPeople.length === 0 ? (
               <p className="empty">No staff to show. Add someone below first.</p>
             ) : (
@@ -133,7 +160,10 @@ export default function ManageClient({ profile, allActive, lastBase }) {
                       const r = getRow(p.id);
                       return (
                         <tr key={p.id}>
-                          <td>{p.full_name}{p.role === "owner" && <span className="muted"> (owner)</span>}</td>
+                          <td>
+                            {p.full_name}{p.role === "owner" && <span className="muted"> (owner)</span>}
+                            {hasMonth(p.id) && <span className="badge badge-approved" style={{ marginLeft: 8, fontSize: "0.7rem" }}>already recorded</span>}
+                          </td>
                           <td><input type="number" className="pay-input" value={r.monthly_amount} onChange={(e) => updateRow(p.id, "monthly_amount", e.target.value)} placeholder="0" /></td>
                           <td><input type="number" className="pay-input" value={r.bonus} onChange={(e) => updateRow(p.id, "bonus", e.target.value)} placeholder="0" /></td>
                           <td><input type="number" className="pay-input" value={r.days_worked} onChange={(e) => updateRow(p.id, "days_worked", e.target.value)} placeholder="0" /></td>
@@ -149,7 +179,7 @@ export default function ManageClient({ profile, allActive, lastBase }) {
 
             <div style={{ marginTop: 20, display: "flex", alignItems: "center", gap: 16 }}>
               <button type="submit" className="dash-btn" disabled={payBusy || payrollPeople.length === 0}>
-                {payBusy ? "Saving…" : "Save this month's pay"}
+                {payBusy ? "Saving…" : `Save ${monthLabelFromValue(payMonth)} pay`}
               </button>
               {payMsg && <span className="form-msg">{payMsg}</span>}
             </div>

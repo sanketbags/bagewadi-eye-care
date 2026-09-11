@@ -42,7 +42,12 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
 
   const money = (a) => (a == null ? "—" : "₹" + new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(a));
   const total = (s) => (Number(s.monthly_amount) || 0) + (Number(s.bonus) || 0);
-  const monthLabel = (d) => (d ? new Date(d).toLocaleDateString("en-IN", { month: "long", year: "numeric" }) : "—");
+  const monthLabel = (d) => {
+    if (!d) return "—";
+    const [y, m] = String(d).slice(0, 10).split("-");
+    const names = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    return `${names[Number(m) - 1]} ${y}`;
+  };
   const fmtDate = (d) => new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 
   return (

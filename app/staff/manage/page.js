@@ -10,18 +10,24 @@ export default async function ManagePage() {
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
   if (profile?.role !== "owner") redirect("/staff/dashboard");
 
-  // All active people, we split staff vs owners in the client
   const { data: allActive } = await supabase
     .from("profiles").select("*").eq("active", true).order("full_name");
 
-  const { data: recentPay } = await supabase
+  const { data: allPay } = await supabase
     .from("salaries").select("staff_id, monthly_amount, pay_month")
     .order("pay_month", { ascending: false });
 
+  // last base per staff (for prefill)
   const lastBase = {};
-  (recentPay || []).forEach((r) => {
-    if (r.staff_id && lastBase[r.staff_id] == null) lastBase[r.staff_id] = r.monthly_amount;
+  // set of recorded months per staff (YYYY-MM-01 strings)
+  const recordedMonths = {};
+  (allPay || []).forEach((r) => {
+    if (!r.staff_id) return;
+    if (lastBase[r.staff_id] == null) lastBase[r.staff_id] = r.monthly_amount;
+    if (r.pay_month) {
+      (recordedMonths[r.staff_id] = recordedMonths[r.staff_id] || []).push(r.pay_month);
+    }
   });
 
-  return <ManageClient profile={profile} allActive={allActive || []} lastBase={lastBase} />;
+  return <ManageClient profile={profile} allActive={allActive || []} lastBase={lastBase} recordedMonths={recordedMonths} />;
 }
