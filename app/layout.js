@@ -1,4 +1,5 @@
 import "./globals.css";
+import "./staff-portal.css";
 
 export const metadata = {
   title: "Dr Bagewadi's Eye Care Centre",

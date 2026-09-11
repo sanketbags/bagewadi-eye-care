@@ -1,17 +1,74 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase-client";
+
 export default function StaffLogin() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    setLoading(false);
+    if (error) {
+      setError("Those details don't match an account. Check your email and password.");
+      return;
+    }
+    router.push("/staff/dashboard");
+    router.refresh();
+  }
+
   return (
-    <section style={{ padding: "140px 40px", textAlign: "center", maxWidth: 600, margin: "0 auto" }}>
-      <div className="kicker" style={{ color: "var(--gold)", fontWeight: 600, marginBottom: 14 }}>
-        Staff Portal
+    <div className="login-page">
+      <div className="login-card">
+        <div className="login-logo">
+          <span className="script">Dr. Bagewadi's</span>
+          <span className="main">Eye Care Centre</span>
+        </div>
+        <h1>Staff sign in</h1>
+        <p className="login-sub">Access your salary and time-off details.</p>
+
+        <form onSubmit={handleLogin}>
+          <label>
+            Email
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              required
+            />
+          </label>
+          <label>
+            Password
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Your password"
+              required
+            />
+          </label>
+
+          {error && <div className="login-error">{error}</div>}
+
+          <button type="submit" className="login-btn" disabled={loading}>
+            {loading ? "Signing in…" : "Sign in"}
+          </button>
+        </form>
+
+        <a href="/" className="login-back">← Back to website</a>
       </div>
-      <h1 style={{ color: "var(--navy)", fontSize: "2.4rem", marginBottom: "1rem" }}>Coming soon</h1>
-      <p style={{ color: "var(--muted)", fontSize: "1.1rem" }}>
-        This is where staff will log in to manage salary and time-off records.
-        We'll wire this up in the next phase.
-      </p>
-      <p style={{ marginTop: "2rem" }}>
-        <a href="/" style={{ color: "var(--navy)", fontWeight: 500 }}>← Back to home</a>
-      </p>
-    </section>
+    </div>
   );
 }
