@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase-client";
 
-export default function StaffLogin() {
+function LoginInner() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -60,5 +60,13 @@ export default function StaffLogin() {
         <a href="/" className="login-back">← Back to website</a>
       </div>
     </div>
+  );
+}
+
+export default function StaffLogin() {
+  return (
+    <Suspense fallback={<div className="login-page"><div className="login-card">Loading…</div></div>}>
+      <LoginInner />
+    </Suspense>
   );
 }
