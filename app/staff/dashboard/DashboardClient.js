@@ -16,7 +16,7 @@ function currentMonthValue() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
-export default function DashboardClient({ profile, isOwner, salaries, timeOff, appointments, bookingEnabled, staffList }) {
+export default function DashboardClient({ profile, isOwner, salaries, timeOff, staffList }) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -24,14 +24,6 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, a
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
   const [msg, setMsg] = useState("");
-  const [booking, setBooking] = useState(bookingEnabled);
-
-  // Confirm-appointment modal
-  const [confirming, setConfirming] = useState(null); // the appointment being confirmed
-  const [cDate, setCDate] = useState("");
-  const [cTime, setCTime] = useState("");
-  const [cNote, setCNote] = useState("");
-  const [cErr, setCErr] = useState("");
 
   const payMonths = useMemo(() => {
     const set = new Set();
@@ -94,59 +86,6 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, a
     router.refresh();
   }
 
-  function openConfirm(a) {
-    setConfirming(a);
-    setCDate(a.preferred_date || "");
-    setCTime("");
-    setCNote("");
-    setCErr("");
-  }
-
-  function to12h(t) {
-    // "16:15" -> "4:15 PM"
-    if (!t) return "";
-    const [hStr, m] = t.split(":");
-    let h = Number(hStr);
-    const ap = h >= 12 ? "PM" : "AM";
-    h = h % 12 || 12;
-    return `${h}:${m} ${ap}`;
-  }
-
-  async function submitConfirm() {
-    setCErr("");
-    if (!cDate || !cTime) { setCErr("Please set both a date and a time."); return; }
-    const confirmed_date_text = new Date(cDate + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-    const confirmed_time_text = to12h(cTime);
-    const res = await fetch("/api/appointments/review", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: confirming.id, status: "confirmed", confirmed_date_text, confirmed_time_text, clinic_note: cNote }),
-    });
-    if (res.ok) { setConfirming(null); router.refresh(); }
-    else { const d = await res.json(); setCErr(d.error || "Could not confirm."); }
-  }
-
-  async function declineAppt(id) {
-    const res = await fetch("/api/appointments/review", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status: "declined" }),
-    });
-    if (res.ok) router.refresh();
-  }
-
-  async function toggleBooking() {
-    const next = !booking;
-    setBooking(next);
-    const res = await fetch("/api/settings/toggle-booking", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ enabled: next }),
-    });
-    if (!res.ok) { setBooking(!next); }
-    router.refresh();
-  }
-
-  const pendingAppts = appointments.filter((a) => a.status === "pending");
-  const otherAppts = appointments.filter((a) => a.status !== "pending");
-
   return (
     <div className="dash">
       <header className="dash-head">
@@ -156,7 +95,13 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, a
         </div>
         <div className="dash-user">
           <span>{profile?.full_name} · {isOwner ? "Owner" : "Staff"}</span>
-          {isOwner && <a href="/staff/manage" className="manage-link">Manage staff</a>}
+          <a href="/staff/appointments" className="manage-link">Appointments</a>
+          {isOwner && (
+            <>
+              <a href="/staff/manage" className="manage-link">Manage staff</a>
+              <a href="/staff/finance" className="manage-link">Finances</a>
+            </>
+          )}
           <a href="/staff/account" className="account-link">Account</a>
           <button onClick={signOut} className="signout-btn">Sign out</button>
         </div>
@@ -165,67 +110,6 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, a
       <main className="dash-body">
         <h1>Welcome, {profile?.full_name?.split(" ")[0]}.</h1>
 
-        {/* APPOINTMENTS */}
-        <section className="dash-card">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
-            <h2 style={{ margin: 0 }}>Appointment requests</h2>
-            {isOwner && (
-              <div className="appt-toggle">
-                Online booking
-                <button type="button" onClick={toggleBooking} className={`toggle-switch ${booking ? "on" : ""}`} aria-label="Toggle booking">
-                  <span className="toggle-knob" />
-                </button>
-                {booking ? "on" : "off"}
-              </div>
-            )}
-          </div>
-
-          {pendingAppts.length === 0 && otherAppts.length === 0 ? (
-            <p className="empty">No appointment requests yet.</p>
-          ) : (
-            <div style={{ overflowX: "auto" }}>
-              <table className="dash-table">
-                <thead>
-                  <tr>
-                    <th>Patient</th>
-                    <th>Contact</th>
-                    <th>Preferred</th>
-                    <th>Reason</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...pendingAppts, ...otherAppts].map((a) => (
-                    <tr key={a.id}>
-                      <td>{a.patient_name}</td>
-                      <td className="muted" style={{ fontSize: "0.85rem" }}>
-                        {a.phone && <div>{a.phone}</div>}
-                        {a.email && <div>{a.email}</div>}
-                      </td>
-                      <td>
-                        <div>{fmtDate(a.preferred_date)}{a.preferred_time ? `, ${a.preferred_time}` : ""}</div>
-                        {a.confirmed_time_text && <div style={{ color: "#0F6E56", fontSize: "0.82rem", marginTop: 3 }}>Set: {a.confirmed_date_text}, {a.confirmed_time_text}</div>}
-                      </td>
-                      <td className="muted">{a.reason || "—"}</td>
-                      <td><span className={`badge badge-${a.status === "confirmed" ? "approved" : a.status === "declined" ? "rejected" : "pending"}`}>{a.status}</span></td>
-                      <td>
-                        {a.status === "pending" ? (
-                          <div className="action-btns">
-                            <button onClick={() => openConfirm(a)} className="approve">Confirm</button>
-                            <button onClick={() => declineAppt(a.id)} className="reject">Decline</button>
-                          </div>
-                        ) : (<span className="muted">—</span>)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-
-        {/* PAY RECORDS */}
         <section className="dash-card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
             <h2 style={{ margin: 0 }}>{isOwner ? "Monthly pay records" : "Your monthly pay"}</h2>
@@ -332,29 +216,6 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, a
           </section>
         )}
       </main>
-
-      {confirming && (
-        <div className="modal-overlay" onClick={() => setConfirming(null)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ marginBottom: 6 }}>Confirm appointment</h2>
-            <p className="muted" style={{ marginBottom: 18, fontSize: "0.9rem" }}>
-              {confirming.patient_name} requested {fmtDate(confirming.preferred_date)}{confirming.preferred_time ? `, ${confirming.preferred_time}` : ""}.
-            </p>
-            <div className="timeoff-form">
-              <div className="field-row">
-                <label>Date<input type="date" value={cDate} onChange={(e) => setCDate(e.target.value)} /></label>
-                <label>Time<input type="time" value={cTime} onChange={(e) => setCTime(e.target.value)} /></label>
-              </div>
-              <label>Note to patient (optional)<input value={cNote} onChange={(e) => setCNote(e.target.value)} placeholder="e.g. Please arrive 10 minutes early" /></label>
-              {cErr && <div className="login-error">{cErr}</div>}
-              <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
-                <button onClick={submitConfirm} className="dash-btn">Confirm &amp; set time</button>
-                <button onClick={() => setConfirming(null)} className="signout-btn">Cancel</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
