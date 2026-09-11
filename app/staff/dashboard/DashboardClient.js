@@ -16,7 +16,7 @@ function currentMonthValue() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
-export default function DashboardClient({ profile, isOwner, salaries, timeOff, staffList }) {
+export default function DashboardClient({ profile, isOwner, salaries, timeOff, appointments, bookingEnabled, staffList }) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -24,6 +24,14 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
   const [msg, setMsg] = useState("");
+  const [booking, setBooking] = useState(bookingEnabled);
+
+  // Confirm-appointment modal
+  const [confirming, setConfirming] = useState(null); // the appointment being confirmed
+  const [cDate, setCDate] = useState("");
+  const [cTime, setCTime] = useState("");
+  const [cNote, setCNote] = useState("");
+  const [cErr, setCErr] = useState("");
 
   const payMonths = useMemo(() => {
     const set = new Set();
@@ -32,10 +40,7 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
   }, [salaries]);
 
   const cur = currentMonthValue();
-  const [filterMonth, setFilterMonth] = useState(
-    payMonths.includes(cur) ? cur : (payMonths[0] || cur)
-  );
-
+  const [filterMonth, setFilterMonth] = useState(payMonths.includes(cur) ? cur : (payMonths[0] || cur));
   const shownSalaries = useMemo(
     () => salaries.filter((s) => String(s.pay_month).slice(0, 10) === filterMonth),
     [salaries, filterMonth]
@@ -45,7 +50,6 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
   const total = (s) => (Number(s.monthly_amount) || 0) + (Number(s.bonus) || 0);
   const fmtDate = (d) => new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 
-  // Build a plain-object row for Excel (numbers, not formatted strings)
   function toExcelRows(rows) {
     return rows.map((s) => {
       const r = {};
@@ -59,20 +63,12 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
       return r;
     });
   }
-
   function downloadExcel(rows, filename) {
     if (rows.length === 0) return;
     const ws = XLSX.utils.json_to_sheet(toExcelRows(rows));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Pay records");
     XLSX.writeFile(wb, filename);
-  }
-
-  function downloadMonth() {
-    downloadExcel(shownSalaries, `pay-${filterMonth}.xlsx`);
-  }
-  function downloadAll() {
-    downloadExcel(salaries, `pay-all-records.xlsx`);
   }
 
   async function signOut() {
@@ -87,12 +83,8 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
     const { error } = await supabase.from("time_off_requests").insert({
       staff_id: profile.id, start_date: startDate, end_date: endDate, reason,
     });
-    if (error) {
-      setMsg("Something went wrong. Please try again.");
-    } else {
-      setStartDate(""); setEndDate(""); setReason(""); setMsg("Request submitted.");
-      router.refresh();
-    }
+    if (error) { setMsg("Something went wrong. Please try again."); }
+    else { setStartDate(""); setEndDate(""); setReason(""); setMsg("Request submitted."); router.refresh(); }
   }
 
   async function review(id, status) {
@@ -101,6 +93,59 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
       .eq("id", id);
     router.refresh();
   }
+
+  function openConfirm(a) {
+    setConfirming(a);
+    setCDate(a.preferred_date || "");
+    setCTime("");
+    setCNote("");
+    setCErr("");
+  }
+
+  function to12h(t) {
+    // "16:15" -> "4:15 PM"
+    if (!t) return "";
+    const [hStr, m] = t.split(":");
+    let h = Number(hStr);
+    const ap = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12;
+    return `${h}:${m} ${ap}`;
+  }
+
+  async function submitConfirm() {
+    setCErr("");
+    if (!cDate || !cTime) { setCErr("Please set both a date and a time."); return; }
+    const confirmed_date_text = new Date(cDate + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+    const confirmed_time_text = to12h(cTime);
+    const res = await fetch("/api/appointments/review", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: confirming.id, status: "confirmed", confirmed_date_text, confirmed_time_text, clinic_note: cNote }),
+    });
+    if (res.ok) { setConfirming(null); router.refresh(); }
+    else { const d = await res.json(); setCErr(d.error || "Could not confirm."); }
+  }
+
+  async function declineAppt(id) {
+    const res = await fetch("/api/appointments/review", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status: "declined" }),
+    });
+    if (res.ok) router.refresh();
+  }
+
+  async function toggleBooking() {
+    const next = !booking;
+    setBooking(next);
+    const res = await fetch("/api/settings/toggle-booking", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: next }),
+    });
+    if (!res.ok) { setBooking(!next); }
+    router.refresh();
+  }
+
+  const pendingAppts = appointments.filter((a) => a.status === "pending");
+  const otherAppts = appointments.filter((a) => a.status !== "pending");
 
   return (
     <div className="dash">
@@ -120,6 +165,67 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
       <main className="dash-body">
         <h1>Welcome, {profile?.full_name?.split(" ")[0]}.</h1>
 
+        {/* APPOINTMENTS */}
+        <section className="dash-card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
+            <h2 style={{ margin: 0 }}>Appointment requests</h2>
+            {isOwner && (
+              <div className="appt-toggle">
+                Online booking
+                <button type="button" onClick={toggleBooking} className={`toggle-switch ${booking ? "on" : ""}`} aria-label="Toggle booking">
+                  <span className="toggle-knob" />
+                </button>
+                {booking ? "on" : "off"}
+              </div>
+            )}
+          </div>
+
+          {pendingAppts.length === 0 && otherAppts.length === 0 ? (
+            <p className="empty">No appointment requests yet.</p>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table className="dash-table">
+                <thead>
+                  <tr>
+                    <th>Patient</th>
+                    <th>Contact</th>
+                    <th>Preferred</th>
+                    <th>Reason</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...pendingAppts, ...otherAppts].map((a) => (
+                    <tr key={a.id}>
+                      <td>{a.patient_name}</td>
+                      <td className="muted" style={{ fontSize: "0.85rem" }}>
+                        {a.phone && <div>{a.phone}</div>}
+                        {a.email && <div>{a.email}</div>}
+                      </td>
+                      <td>
+                        <div>{fmtDate(a.preferred_date)}{a.preferred_time ? `, ${a.preferred_time}` : ""}</div>
+                        {a.confirmed_time_text && <div style={{ color: "#0F6E56", fontSize: "0.82rem", marginTop: 3 }}>Set: {a.confirmed_date_text}, {a.confirmed_time_text}</div>}
+                      </td>
+                      <td className="muted">{a.reason || "—"}</td>
+                      <td><span className={`badge badge-${a.status === "confirmed" ? "approved" : a.status === "declined" ? "rejected" : "pending"}`}>{a.status}</span></td>
+                      <td>
+                        {a.status === "pending" ? (
+                          <div className="action-btns">
+                            <button onClick={() => openConfirm(a)} className="approve">Confirm</button>
+                            <button onClick={() => declineAppt(a.id)} className="reject">Decline</button>
+                          </div>
+                        ) : (<span className="muted">—</span>)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        {/* PAY RECORDS */}
         <section className="dash-card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
             <h2 style={{ margin: 0 }}>{isOwner ? "Monthly pay records" : "Your monthly pay"}</h2>
@@ -129,12 +235,8 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
                   {payMonths.map((m) => (<option key={m} value={m}>{monthLabelFromValue(m)}</option>))}
                 </select>
               )}
-              {shownSalaries.length > 0 && (
-                <button type="button" onClick={downloadMonth} className="dl-btn">Download this month</button>
-              )}
-              {salaries.length > 0 && (
-                <button type="button" onClick={downloadAll} className="dl-btn dl-btn-ghost">Download all</button>
-              )}
+              {shownSalaries.length > 0 && <button type="button" onClick={() => downloadExcel(shownSalaries, `pay-${filterMonth}.xlsx`)} className="dl-btn">Download this month</button>}
+              {salaries.length > 0 && <button type="button" onClick={() => downloadExcel(salaries, `pay-all-records.xlsx`)} className="dl-btn dl-btn-ghost">Download all</button>}
             </div>
           </div>
           {shownSalaries.length === 0 ? (
@@ -143,14 +245,7 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
             <div style={{ overflowX: "auto" }}>
               <table className="dash-table">
                 <thead>
-                  <tr>
-                    {isOwner && <th>Staff</th>}
-                    <th>Base</th>
-                    <th>Bonus</th>
-                    <th>Days</th>
-                    <th>Leave</th>
-                    <th>Total</th>
-                  </tr>
+                  <tr>{isOwner && <th>Staff</th>}<th>Base</th><th>Bonus</th><th>Days</th><th>Leave</th><th>Total</th></tr>
                 </thead>
                 <tbody>
                   {shownSalaries.map((s) => (
@@ -191,13 +286,7 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
           ) : (
             <table className="dash-table">
               <thead>
-                <tr>
-                  {isOwner && <th>Staff</th>}
-                  <th>Dates</th>
-                  <th>Reason</th>
-                  <th>Status</th>
-                  {isOwner && <th>Action</th>}
-                </tr>
+                <tr>{isOwner && <th>Staff</th>}<th>Dates</th><th>Reason</th><th>Status</th>{isOwner && <th>Action</th>}</tr>
               </thead>
               <tbody>
                 {timeOff.map((t) => (
@@ -243,6 +332,29 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
           </section>
         )}
       </main>
+
+      {confirming && (
+        <div className="modal-overlay" onClick={() => setConfirming(null)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ marginBottom: 6 }}>Confirm appointment</h2>
+            <p className="muted" style={{ marginBottom: 18, fontSize: "0.9rem" }}>
+              {confirming.patient_name} requested {fmtDate(confirming.preferred_date)}{confirming.preferred_time ? `, ${confirming.preferred_time}` : ""}.
+            </p>
+            <div className="timeoff-form">
+              <div className="field-row">
+                <label>Date<input type="date" value={cDate} onChange={(e) => setCDate(e.target.value)} /></label>
+                <label>Time<input type="time" value={cTime} onChange={(e) => setCTime(e.target.value)} /></label>
+              </div>
+              <label>Note to patient (optional)<input value={cNote} onChange={(e) => setCNote(e.target.value)} placeholder="e.g. Please arrive 10 minutes early" /></label>
+              {cErr && <div className="login-error">{cErr}</div>}
+              <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+                <button onClick={submitConfirm} className="dash-btn">Confirm &amp; set time</button>
+                <button onClick={() => setConfirming(null)} className="signout-btn">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

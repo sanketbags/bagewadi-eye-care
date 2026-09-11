@@ -11,7 +11,7 @@ export default function Header() {
           <a href="#services">Services</a>
           <a href="#contact">Contact</a>
           <a href="/staff" className="staff-link">Staff Login</a>
-          <a href="#contact" className="nav-cta">Book a Visit</a>
+          <a href="#book" className="nav-cta">Book a Visit</a>
         </div>
         <button className="menu-toggle" aria-label="Menu">☰</button>
       </nav>

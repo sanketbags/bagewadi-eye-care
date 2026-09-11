@@ -56,7 +56,7 @@ export default function Hero() {
             practice.
           </p>
           <div className="hero-ctas">
-            <a href="#contact" className="btn-primary">Book an appointment</a>
+            <a href="#book" className="btn-primary">Book an appointment</a>
             <a href="#services" className="btn-ghost">Explore our care</a>
           </div>
         </div>

@@ -10,7 +10,6 @@ export default async function Dashboard() {
   const { data: profile } = await supabase
     .from("profiles").select("*").eq("id", user.id).maybeSingle();
 
-  // Blocked: deactivated accounts get signed out
   if (profile?.active === false) {
     await supabase.auth.signOut();
     redirect("/staff?deactivated=1");
@@ -28,6 +27,14 @@ export default async function Dashboard() {
     .select("*, profiles!time_off_requests_staff_id_fkey(full_name)")
     .order("created_at", { ascending: false });
 
+  const { data: appointments } = await supabase
+    .from("appointments")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  const { data: bookingSetting } = await supabase
+    .from("settings").select("value").eq("key", "booking_enabled").maybeSingle();
+
   let staffList = [];
   if (isOwner) {
     const { data } = await supabase.from("profiles").select("*").order("full_name");
@@ -40,6 +47,8 @@ export default async function Dashboard() {
       isOwner={isOwner}
       salaries={salaries || []}
       timeOff={timeOff || []}
+      appointments={appointments || []}
+      bookingEnabled={bookingSetting?.value === "true"}
       staffList={staffList}
     />
   );
