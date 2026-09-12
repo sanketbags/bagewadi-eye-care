@@ -40,7 +40,12 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
 
   const money = (a) => (a == null ? "—" : "₹" + new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(a));
   const total = (s) => (Number(s.monthly_amount) || 0) + (Number(s.bonus) || 0);
-  const fmtDate = (d) => new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  const fmtDate = (d) => {
+    if (!d) return "—";
+    const [y, m, day] = String(d).slice(0, 10).split("-");
+    const names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return `${Number(day)} ${names[Number(m) - 1]} ${y}`;
+  };
 
   function toExcelRows(rows) {
     return rows.map((s) => {
@@ -79,10 +84,47 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
     else { setStartDate(""); setEndDate(""); setReason(""); setMsg("Request submitted."); router.refresh(); }
   }
 
-  async function review(id, status) {
+  function countLeaveByMonth(startStr, endStr) {
+    // Counts each day in the range, skipping Sundays, grouped by calendar month.
+    const start = new Date(startStr + "T00:00:00");
+    const end = new Date(endStr + "T00:00:00");
+    const byMonth = {};
+    const cur = new Date(start);
+    while (cur <= end) {
+      if (cur.getDay() !== 0) { // 0 = Sunday
+        const key = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, "0")}-01`;
+        byMonth[key] = (byMonth[key] || 0) + 1;
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+    return byMonth;
+  }
+
+  async function syncLeaveToPayroll(staffId, startStr, endStr) {
+    const byMonth = countLeaveByMonth(startStr, endStr);
+    for (const [month, days] of Object.entries(byMonth)) {
+      const { data: existing } = await supabase
+        .from("salaries").select("id, leave_taken")
+        .eq("staff_id", staffId).eq("pay_month", month).maybeSingle();
+      if (existing) {
+        await supabase.from("salaries")
+          .update({ leave_taken: (Number(existing.leave_taken) || 0) + days })
+          .eq("id", existing.id);
+      } else {
+        await supabase.from("salaries").insert({
+          staff_id: staffId, pay_month: month, leave_taken: days, effective_from: month,
+        });
+      }
+    }
+  }
+
+  async function review(request, status) {
     await supabase.from("time_off_requests")
       .update({ status, reviewed_by: profile.id, reviewed_at: new Date().toISOString() })
-      .eq("id", id);
+      .eq("id", request.id);
+    if (status === "approved") {
+      await syncLeaveToPayroll(request.staff_id, request.start_date, request.end_date);
+    }
     router.refresh();
   }
 
@@ -186,8 +228,8 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
                         <td>
                           {t.status === "pending" ? (
                             <div className="action-btns">
-                              <button onClick={() => review(t.id, "approved")} className="approve">Approve</button>
-                              <button onClick={() => review(t.id, "rejected")} className="reject">Reject</button>
+                              <button onClick={() => review(t, "approved")} className="approve">Approve</button>
+                              <button onClick={() => review(t, "rejected")} className="reject">Reject</button>
                             </div>
                           ) : (<span className="muted">—</span>)}
                         </td>
@@ -203,7 +245,7 @@ export default function DashboardClient({ profile, isOwner, salaries, timeOff, s
         {isOwner && (
           <section className="dash-card">
             <h2>Staff directory</h2>
-            <p className="muted" style={{ marginBottom: 16 }}>{staffList.length} people. Use “Manage staff” to record pay and add people.</p>
+            <p className="muted" style={{ marginBottom: 16 }}>{staffList.length} people. Use "Manage staff" to record pay and add people.</p>
             <div style={{ overflowX: "auto" }}>
               <table className="dash-table">
                 <thead><tr><th>Name</th><th>Role</th><th>Job title</th><th>Status</th></tr></thead>
